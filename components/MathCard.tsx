@@ -7,6 +7,7 @@ import {
   TextInput,
   Modal,
   ActivityIndicator,
+  ScrollView,
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -27,7 +28,13 @@ export const MathCard: React.FC<MathCardProps> = ({
 }) => {
   const [showSolution, setShowSolution] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+
+  // Edit form states
   const [editContent, setEditContent] = useState(question.content);
+  const [editShortAnswer, setEditShortAnswer] = useState(question.shortAnswer || '');
+  const [editSolutionSummary, setEditSolutionSummary] = useState(
+    question.solutionSteps.map((s) => s.step).join('\n')
+  );
   const [isAiSolving, setIsAiSolving] = useState(false);
 
   const levelColor =
@@ -37,8 +44,8 @@ export const MathCard: React.FC<MathCardProps> = ({
       ? { bg: '#ECFDF5', text: '#059669', border: '#A7F3D0' }
       : { bg: '#FFFBEB', text: '#D97706', border: '#FDE68A' };
 
-  // Giáo viên bấm "Chốt câu hỏi" -> AI tự động giải & cập nhật đáp án + lời giải theo thời gian thực
-  const handleFinalizeQuestion = async () => {
+  // AI tự động giải toán và cập nhật form
+  const handleAiAutoSolve = async () => {
     setIsAiSolving(true);
     try {
       const aiResult = await solveQuestionWithAi(
@@ -46,29 +53,71 @@ export const MathCard: React.FC<MathCardProps> = ({
         question.part,
         question.options,
         question.subQuestions,
-        question.shortAnswer
+        editShortAnswer
       );
+
+      if (aiResult.shortAnswer) {
+        setEditShortAnswer(aiResult.shortAnswer);
+      }
+      setEditSolutionSummary(aiResult.solutionSteps.map((s) => s.step).join('\n'));
+    } finally {
+      setIsAiSolving(false);
+    }
+  };
+
+  // Giáo viên bấm "Chốt câu hỏi" -> lưu vào đề thi
+  const handleFinalizeQuestion = async () => {
+    setIsAiSolving(true);
+    try {
+      // Nếu chưa có lời giải hoặc muốn AI tự tính luôn
+      let aiResult = await solveQuestionWithAi(
+        editContent,
+        question.part,
+        question.options,
+        question.subQuestions,
+        editShortAnswer
+      );
+
+      // Nếu giáo viên đã tự sửa đáp án trong ô input, ưu tiên đáp án của giáo viên
+      const finalShortAnswer = editShortAnswer.trim() || aiResult.shortAnswer || question.shortAnswer;
+
+      // Xây dựng các bước giải
+      let finalSteps = aiResult.solutionSteps;
+      if (editSolutionSummary.trim() && editSolutionSummary !== question.solutionSteps.map((s) => s.step).join('\n')) {
+        const lines = editSolutionSummary.split('\n').filter((l) => l.trim().length > 0);
+        finalSteps = lines.map((line, idx) => ({
+          step: line,
+          score: idx === lines.length - 1 ? '0,10đ' : '0,15đ',
+        }));
+      }
 
       const updatedQuestion: QuestionItem = {
         ...question,
         content: editContent,
         options: aiResult.options || question.options,
         subQuestions: aiResult.subQuestions || question.subQuestions,
-        shortAnswer: aiResult.shortAnswer || question.shortAnswer,
-        solutionSteps: aiResult.solutionSteps,
+        shortAnswer: finalShortAnswer,
+        solutionSteps: finalSteps,
         sympyAudit: {
           ...question.sympyAudit,
-          computedResult: aiResult.computedAnswer,
-          auditLog: `AI Real-time: Đã giải tự động và cập nhật đáp án [${aiResult.computedAnswer}].`,
+          computedResult: finalShortAnswer || aiResult.computedAnswer,
+          auditLog: `Đã cập nhật câu hỏi và lời giải chi tiết.`,
         },
       };
 
       onUpdateQuestion(updatedQuestion);
-      setShowSolution(true); // Tự động mở lời giải vừa sinh ra để giáo viên xem
+      setShowSolution(true);
       setShowEditModal(false);
     } finally {
       setIsAiSolving(false);
     }
+  };
+
+  const openEditModal = () => {
+    setEditContent(question.content);
+    setEditShortAnswer(question.shortAnswer || '');
+    setEditSolutionSummary(question.solutionSteps.map((s) => s.step).join('\n'));
+    setShowEditModal(true);
   };
 
   return (
@@ -196,10 +245,7 @@ export const MathCard: React.FC<MathCardProps> = ({
       <View style={styles.actionButtonsRow}>
         <TouchableOpacity
           style={styles.editBtn}
-          onPress={() => {
-            setEditContent(question.content);
-            setShowEditModal(true);
-          }}
+          onPress={openEditModal}
           activeOpacity={0.7}
         >
           <Ionicons name="create-outline" size={14} color="#2563EB" />
@@ -255,7 +301,7 @@ export const MathCard: React.FC<MathCardProps> = ({
         </View>
       )}
 
-      {/* Edit Question Modal */}
+      {/* Enhanced Edit Question Modal */}
       <Modal visible={showEditModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -269,27 +315,65 @@ export const MathCard: React.FC<MathCardProps> = ({
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.modalHint}>
-              Giáo viên nhập nội dung mới. Khi bấm "Chốt câu hỏi", AI sẽ tự động phân tích và sinh lời giải chi tiết thời gian thực.
-            </Text>
+            <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
+              {/* Nội dung đề bài */}
+              <Text style={styles.inputSectionLabel}>Nội dung câu hỏi:</Text>
+              <TextInput
+                style={styles.modalTextInput}
+                multiline
+                value={editContent}
+                onChangeText={setEditContent}
+                placeholder="Nhập đề bài câu hỏi..."
+                placeholderTextColor="#94A3B8"
+              />
 
-            <TextInput
-              style={styles.modalTextInput}
-              multiline
-              value={editContent}
-              onChangeText={setEditContent}
-              placeholder="Nhập nội dung câu hỏi mới..."
-              placeholderTextColor="#94A3B8"
-            />
+              {/* Ô nhập / hiển thị đáp số (Dành cho câu trả lời ngắn) */}
+              {question.part === 3 && (
+                <View style={styles.answerInputWrap}>
+                  <Text style={styles.inputSectionLabel}>Đáp số cần điền:</Text>
+                  <TextInput
+                    style={styles.answerTextInput}
+                    value={editShortAnswer}
+                    onChangeText={setEditShortAnswer}
+                    placeholder="Ví dụ: 13, 4.5, -2..."
+                    placeholderTextColor="#94A3B8"
+                  />
+                </View>
+              )}
 
-            {isAiSolving && (
-              <View style={styles.aiLoadingRow}>
-                <ActivityIndicator size="small" color="#2563EB" />
-                <Text style={styles.aiLoadingText}>
-                  AI đang tự động giải toán và cập nhật đáp án & lời giải...
-                </Text>
+              {/* Lời giải chi tiết */}
+              <View style={styles.solutionInputHeader}>
+                <Text style={styles.inputSectionLabel}>Lời giải chi tiết từng bước:</Text>
+                <TouchableOpacity
+                  style={styles.aiSolveQuickBtn}
+                  onPress={handleAiAutoSolve}
+                  disabled={isAiSolving}
+                >
+                  <Ionicons name="sparkles" size={12} color="#2563EB" />
+                  <Text style={styles.aiSolveQuickBtnText}>
+                    {isAiSolving ? 'Đang giải...' : 'AI tự giải lại'}
+                  </Text>
+                </TouchableOpacity>
               </View>
-            )}
+
+              <TextInput
+                style={styles.modalSolutionInput}
+                multiline
+                value={editSolutionSummary}
+                onChangeText={setEditSolutionSummary}
+                placeholder="Nhập hoặc để AI tự động sinh lời giải..."
+                placeholderTextColor="#94A3B8"
+              />
+
+              {isAiSolving && (
+                <View style={styles.aiLoadingRow}>
+                  <ActivityIndicator size="small" color="#2563EB" />
+                  <Text style={styles.aiLoadingText}>
+                    AI đang tính toán chính xác đáp số và sinh lời giải từng bước...
+                  </Text>
+                </View>
+              )}
+            </ScrollView>
 
             <View style={styles.modalActions}>
               <TouchableOpacity
@@ -307,7 +391,7 @@ export const MathCard: React.FC<MathCardProps> = ({
               >
                 <Ionicons name="checkmark-done" size={15} color="#FFFFFF" />
                 <Text style={styles.modalSaveText}>
-                  {isAiSolving ? 'Đang giải...' : 'Chốt câu hỏi (AI tự sinh lời giải)'}
+                  {isAiSolving ? 'Đang xử lý...' : 'Chốt câu hỏi & Lưu'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -660,12 +744,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
+    maxHeight: '85%',
+  },
+  modalScroll: {
+    marginVertical: 4,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: 10,
   },
   modalTitleWrap: {
     flexDirection: 'row',
@@ -677,11 +765,12 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#0F172A',
   },
-  modalHint: {
+  inputSectionLabel: {
     fontSize: 11.5,
-    color: '#64748B',
-    marginBottom: 10,
-    lineHeight: 16,
+    fontWeight: '700',
+    color: '#334155',
+    marginBottom: 4,
+    marginTop: 6,
   },
   modalTextInput: {
     borderWidth: 1,
@@ -689,10 +778,60 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 10,
     fontSize: 13.5,
-    height: 110,
+    height: 80,
     textAlignVertical: 'top',
     color: '#0F172A',
-    marginBottom: 10,
+    marginBottom: 8,
+    backgroundColor: '#F8FAFC',
+  },
+  answerInputWrap: {
+    marginBottom: 8,
+  },
+  answerTextInput: {
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    fontSize: 13.5,
+    fontWeight: 'bold',
+    color: '#166534',
+    backgroundColor: '#F0FDF4',
+  },
+  solutionInputHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  aiSolveQuickBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  aiSolveQuickBtnText: {
+    fontSize: 10.5,
+    fontWeight: '600',
+    color: '#2563EB',
+  },
+  modalSolutionInput: {
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 8,
+    padding: 10,
+    fontSize: 12.5,
+    height: 90,
+    textAlignVertical: 'top',
+    color: '#334155',
+    backgroundColor: '#F8FAFC',
+    lineHeight: 18,
+    marginBottom: 8,
   },
   aiLoadingRow: {
     flexDirection: 'row',
@@ -701,7 +840,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#EFF6FF',
     padding: 8,
     borderRadius: 6,
-    marginBottom: 10,
+    marginBottom: 8,
   },
   aiLoadingText: {
     fontSize: 11,
@@ -712,6 +851,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'flex-end',
     gap: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
   },
   modalCancelBtn: {
     paddingHorizontal: 12,

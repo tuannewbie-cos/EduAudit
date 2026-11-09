@@ -22,13 +22,17 @@ export default function ExamGeneratorScreen() {
   // Generate settings
   const [selectedGrade, setSelectedGrade] = useState(12);
   const [selectedBook, setSelectedBook] = useState('kntt');
+  const [selectedSemester, setSelectedSemester] = useState<0 | 1 | 2>(0); // 0: Tất cả, 1: Tập 1, 2: Tập 2
   const [customBooks, setCustomBooks] = useState<
     { id: string; name: string; grade: number; fileName: string }[]
   >([]);
 
-  // Selected topics in SGK
+  // Filter topics based on Grade, Book, and Semester (Tập 1 / Tập 2)
   const availableTopics = HIGH_SCHOOL_MATH_CURRICULUM.filter(
-    (t) => t.grade === selectedGrade && (t.bookId === selectedBook || selectedBook.startsWith('custom_'))
+    (t) =>
+      t.grade === selectedGrade &&
+      (t.bookId === selectedBook || selectedBook.startsWith('custom_')) &&
+      (selectedSemester === 0 || t.semester === selectedSemester)
   );
 
   const [selectedTopicIds, setSelectedTopicIds] = useState<string[]>(
@@ -216,6 +220,61 @@ export default function ExamGeneratorScreen() {
                     </TouchableOpacity>
                   ))}
               </View>
+
+              {/* Step 2b: Chọn Tập 1 hoặc Tập 2 */}
+              <Text style={styles.sectionLabel}>Chọn tập sách (Học kỳ):</Text>
+              <View style={styles.semesterRow}>
+                <TouchableOpacity
+                  style={[
+                    styles.semesterChip,
+                    selectedSemester === 0 && styles.activeSemesterChip,
+                  ]}
+                  onPress={() => setSelectedSemester(0)}
+                >
+                  <Text
+                    style={[
+                      styles.semesterChipText,
+                      selectedSemester === 0 && styles.activeSemesterChipText,
+                    ]}
+                  >
+                    Tất cả (Tập 1 & 2)
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.semesterChip,
+                    selectedSemester === 1 && styles.activeSemesterChip,
+                  ]}
+                  onPress={() => setSelectedSemester(1)}
+                >
+                  <Text
+                    style={[
+                      styles.semesterChipText,
+                      selectedSemester === 1 && styles.activeSemesterChipText,
+                    ]}
+                  >
+                    Tập 1 (Học kỳ I)
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.semesterChip,
+                    selectedSemester === 2 && styles.activeSemesterChip,
+                  ]}
+                  onPress={() => setSelectedSemester(2)}
+                >
+                  <Text
+                    style={[
+                      styles.semesterChipText,
+                      selectedSemester === 2 && styles.activeSemesterChipText,
+                    ]}
+                  >
+                    Tập 2 (Học kỳ II)
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
 
             {/* Step 3: Chọn Bài học / Chuyên đề trong SGK */}
@@ -223,7 +282,7 @@ export default function ExamGeneratorScreen() {
               <View style={styles.cardTitleRow}>
                 <Ionicons name="list" size={16} color="#2563EB" />
                 <Text style={styles.cardTitle}>
-                  Chọn bài học trong SGK để tạo câu hỏi:
+                  Chọn bài học trong SGK (Tổng cộng {availableTopics.length} chuyên đề):
                 </Text>
               </View>
 
@@ -247,7 +306,28 @@ export default function ExamGeneratorScreen() {
                           color={isChecked ? '#2563EB' : '#94A3B8'}
                         />
                         <View style={styles.topicInfo}>
-                          <Text style={styles.topicChapter}>{topic.chapterName}</Text>
+                          <View style={styles.topicMetaRow}>
+                            <View
+                              style={[
+                                styles.semesterBadge,
+                                topic.semester === 1
+                                  ? styles.sem1Badge
+                                  : styles.sem2Badge,
+                              ]}
+                            >
+                              <Text
+                                style={[
+                                  styles.semesterBadgeText,
+                                  topic.semester === 1
+                                    ? styles.sem1Text
+                                    : styles.sem2Text,
+                                ]}
+                              >
+                                {topic.semesterName}
+                              </Text>
+                            </View>
+                            <Text style={styles.topicChapter}>{topic.chapterName}</Text>
+                          </View>
                           <Text
                             style={[
                               styles.topicTitle,
@@ -303,16 +383,16 @@ export default function ExamGeneratorScreen() {
                 <View style={styles.sampleFileRow}>
                   <TouchableOpacity
                     style={styles.sampleFileBtn}
-                    onPress={() => handleSimulateSelectFile('SGK_Toan_12_ChuyenDe_KNTT.pdf')}
+                    onPress={() => handleSimulateSelectFile('SGK_Toan_12_Tap2_KNTT.pdf')}
                   >
-                    <Text style={styles.sampleFileText}>📄 SGK_Toan_12_KNTT.pdf</Text>
+                    <Text style={styles.sampleFileText}>📄 SGK_Toan12_Tap2.pdf</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
                     style={styles.sampleFileBtn}
-                    onPress={() => handleSimulateSelectFile('Chuyen_De_Toan_12_CanhDieu.docx')}
+                    onPress={() => handleSimulateSelectFile('ChuyenDe_TichPhan_Oxyz.docx')}
                   >
-                    <Text style={styles.sampleFileText}>📄 ChuyenDe_CanhDieu.docx</Text>
+                    <Text style={styles.sampleFileText}>📄 ChuyenDe_TichPhan.docx</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -321,7 +401,7 @@ export default function ExamGeneratorScreen() {
               <Text style={styles.inputLabel}>Tên bộ sách / Tài liệu:</Text>
               <TextInput
                 style={styles.textInput}
-                placeholder="Ví dụ: SGK Chuyên đề Toán 12 - Tự chọn"
+                placeholder="Ví dụ: SGK Chuyên đề Toán 12 Tập 2..."
                 value={newSgkName}
                 onChangeText={setNewSgkName}
                 placeholderTextColor="#94A3B8"
@@ -481,6 +561,7 @@ const styles = StyleSheet.create({
   },
   bookRow: {
     gap: 8,
+    marginBottom: 12,
   },
   bookChip: {
     flexDirection: 'row',
@@ -504,6 +585,32 @@ const styles = StyleSheet.create({
   },
   activeBookChipText: {
     color: '#1E40AF',
+    fontWeight: 'bold',
+  },
+  semesterRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  semesterChip: {
+    flex: 1,
+    paddingVertical: 7,
+    borderRadius: 6,
+    backgroundColor: '#F8FAFC',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  activeSemesterChip: {
+    backgroundColor: '#EFF6FF',
+    borderColor: '#2563EB',
+  },
+  semesterChipText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  activeSemesterChipText: {
+    color: '#2563EB',
     fontWeight: 'bold',
   },
   cardTitleRow: {
@@ -543,15 +650,46 @@ const styles = StyleSheet.create({
   topicInfo: {
     flex: 1,
   },
+  topicMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 2,
+  },
+  semesterBadge: {
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  sem1Badge: {
+    backgroundColor: '#DBEAFE',
+  },
+  sem1Text: {
+    color: '#1D4ED8',
+    fontSize: 9.5,
+    fontWeight: 'bold',
+  },
+  sem2Badge: {
+    backgroundColor: '#FEF3C7',
+  },
+  sem2Text: {
+    color: '#B45309',
+    fontSize: 9.5,
+    fontWeight: 'bold',
+  },
+  semesterBadgeText: {
+    fontSize: 9.5,
+    fontWeight: 'bold',
+  },
   topicChapter: {
     fontSize: 10.5,
     color: '#64748B',
+    flex: 1,
   },
   topicTitle: {
     fontSize: 12.5,
     color: '#334155',
     fontWeight: '500',
-    marginTop: 2,
   },
   activeTopicTitle: {
     color: '#1E40AF',
