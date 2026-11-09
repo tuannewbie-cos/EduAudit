@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { Platform } from 'react-native';
 
 export default function TabsLayout() {
@@ -13,12 +13,12 @@ export default function TabsLayout() {
           backgroundColor: '#FFFFFF',
           borderTopColor: '#E2E8F0',
           borderTopWidth: 1,
-          height: Platform.OS === 'ios' ? 86 : 64,
-          paddingBottom: Platform.OS === 'ios' ? 26 : 8,
+          height: Platform.OS === 'ios' ? 84 : 62,
+          paddingBottom: Platform.OS === 'ios' ? 24 : 8,
           paddingTop: 6,
         },
         tabBarLabelStyle: {
-          fontSize: 10,
+          fontSize: 10.5,
           fontWeight: '600',
         },
       }}
@@ -26,23 +26,10 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Tổng quan',
+          title: 'Tạo đề từ SGK',
           tabBarIcon: ({ focused }) => (
             <Ionicons
-              name={focused ? 'grid' : 'grid-outline'}
-              size={20}
-              color={focused ? '#2563EB' : '#64748B'}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="parser"
-        options={{
-          title: 'M1: Nhập đề',
-          tabBarIcon: ({ focused }) => (
-            <Ionicons
-              name={focused ? 'cloud-upload' : 'cloud-upload-outline'}
+              name={focused ? 'sparkles' : 'sparkles-outline'}
               size={21}
               color={focused ? '#2563EB' : '#64748B'}
             />
@@ -52,10 +39,10 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="matrix"
         options={{
-          title: 'M2: Ma trận 7991',
+          title: 'Ma trận đề',
           tabBarIcon: ({ focused }) => (
-            <MaterialCommunityIcons
-              name={focused ? 'matrix' : 'grid'}
+            <Ionicons
+              name={focused ? 'grid' : 'grid-outline'}
               size={21}
               color={focused ? '#2563EB' : '#64748B'}
             />
@@ -65,24 +52,24 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="editor"
         options={{
-          title: 'M3: Đề & Xuất bản',
+          title: 'Soạn & Chốt câu',
           tabBarIcon: ({ focused }) => (
             <Ionicons
-              name={focused ? 'document-text' : 'document-text-outline'}
-              size={20}
+              name={focused ? 'create' : 'create-outline'}
+              size={21}
               color={focused ? '#2563EB' : '#64748B'}
             />
           ),
         }}
       />
       <Tabs.Screen
-        name="omr"
+        name="export"
         options={{
-          title: 'M4: Chấm OMR',
+          title: 'Xuất Word / PDF',
           tabBarIcon: ({ focused }) => (
             <Ionicons
-              name={focused ? 'scan-circle' : 'scan-circle-outline'}
-              size={22}
+              name={focused ? 'document-text' : 'document-text-outline'}
+              size={21}
               color={focused ? '#2563EB' : '#64748B'}
             />
           ),

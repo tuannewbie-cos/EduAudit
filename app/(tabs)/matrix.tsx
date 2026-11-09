@@ -5,102 +5,165 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  TextInput,
   Platform,
 } from 'react-native';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { INITIAL_EXAM_QUESTIONS, QuestionItem } from '../../data/mockQuestions';
+import { INITIAL_EXAM_QUESTIONS } from '../../data/mockQuestions';
 import {
   calculateMatrixSummary,
   generateMatrixTableRows,
 } from '../../services/matrixEngine';
 import { MatrixTable } from '../../components/MatrixTable';
 
-export default function MatrixEngineScreen() {
+export default function MatrixScreen() {
   const router = useRouter();
-  const [questions] = useState<QuestionItem[]>(INITIAL_EXAM_QUESTIONS);
 
-  const summary = calculateMatrixSummary(questions);
-  const rows = generateMatrixTableRows(questions);
+  // Active matrix settings
+  const [matrixName, setMatrixName] = useState('Công văn 7991 / BGDĐT (Chuẩn quy định hiện hành)');
+  const [nbRatio, setNbRatio] = useState('40');
+  const [thRatio, setThRatio] = useState('30');
+  const [vdRatio, setVdRatio] = useState('30');
+  const [totalTime, setTotalTime] = useState('90');
+
+  // Show update matrix section
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [updateNotice, setUpdateNotice] = useState<string | null>(null);
+
+  const summary = calculateMatrixSummary(INITIAL_EXAM_QUESTIONS);
+  const rows = generateMatrixTableRows(INITIAL_EXAM_QUESTIONS);
+
+  const handleApplyNewMatrix = () => {
+    setUpdateNotice('✓ Đã cập nhật và áp dụng khung ma trận mới cho bộ đề thi!');
+    setShowUpdateModal(false);
+    setTimeout(() => setUpdateNotice(null), 3000);
+  };
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Header */}
       <View style={styles.header}>
-        <View style={styles.headerBadge}>
-          <Text style={styles.headerBadgeText}>MODULE 2</Text>
+        <View style={styles.headerTop}>
+          <View>
+            <Text style={styles.headerTitle}>Ma trận đề thi</Text>
+            <Text style={styles.headerSubtitle}>
+              Khung ma trận đặc tả bám sát quy định Bộ GD&ĐT
+            </Text>
+          </View>
+
+          {/* Nút nhỏ riêng: Cập nhật ma trận */}
+          <TouchableOpacity
+            style={styles.updateMatrixBtn}
+            onPress={() => setShowUpdateModal(!showUpdateModal)}
+            activeOpacity={0.8}
+          >
+            <Ionicons
+              name={showUpdateModal ? 'chevron-up' : 'settings-outline'}
+              size={14}
+              color="#2563EB"
+            />
+            <Text style={styles.updateMatrixBtnText}>Cập nhật ma trận</Text>
+          </TouchableOpacity>
         </View>
-        <Text style={styles.headerTitle}>Hybrid Processing & Matrix Engine</Text>
-        <Text style={styles.headerSubtitle}>
-          Khóa cứng chuẩn Bộ GD&ĐT Công văn 7991 & Kiểm toán toán học SymPy
-        </Text>
+
+        {/* Current Active Matrix Name */}
+        <View style={styles.activeMatrixPill}>
+          <Ionicons name="shield-checkmark" size={13} color="#2563EB" />
+          <Text style={styles.activeMatrixPillText}>Đang áp dụng: {matrixName}</Text>
+        </View>
       </View>
 
       <View style={styles.body}>
-        {/* CV 7991 Interactive Matrix Table Component */}
+        {updateNotice && (
+          <View style={styles.noticeBox}>
+            <Ionicons name="checkmark-circle" size={16} color="#059669" />
+            <Text style={styles.noticeText}>{updateNotice}</Text>
+          </View>
+        )}
+
+        {/* MỤC RIÊNG: CẬP NHẬT MA TRẬN MỚI */}
+        {showUpdateModal && (
+          <View style={styles.updateCard}>
+            <View style={styles.updateHeader}>
+              <Ionicons name="options-outline" size={16} color="#2563EB" />
+              <Text style={styles.updateTitle}>Cập nhật khung ma trận đề thi mới</Text>
+            </View>
+            <Text style={styles.updateDesc}>
+              Dành cho giáo viên cập nhật khi Bộ hoặc Sở GD&ĐT ban hành văn bản/ma trận mới.
+            </Text>
+
+            <Text style={styles.inputLabel}>Tên văn bản / Ma trận mới:</Text>
+            <TextInput
+              style={styles.textInput}
+              value={matrixName}
+              onChangeText={setMatrixName}
+              placeholder="Nhập tên ma trận quy định mới..."
+              placeholderTextColor="#94A3B8"
+            />
+
+            <Text style={styles.inputLabel}>Tỷ lệ nhận thức (%):</Text>
+            <View style={styles.ratioInputsRow}>
+              <View style={styles.ratioInputItem}>
+                <Text style={styles.ratioSub}>Nhận biết (NB)</Text>
+                <TextInput
+                  style={styles.ratioInputBox}
+                  value={nbRatio}
+                  onChangeText={setNbRatio}
+                  keyboardType="numeric"
+                />
+              </View>
+
+              <View style={styles.ratioInputItem}>
+                <Text style={styles.ratioSub}>Thông hiểu (TH)</Text>
+                <TextInput
+                  style={styles.ratioInputBox}
+                  value={thRatio}
+                  onChangeText={setThRatio}
+                  keyboardType="numeric"
+                />
+              </View>
+
+              <View style={styles.ratioInputItem}>
+                <Text style={styles.ratioSub}>Vận dụng (VD)</Text>
+                <TextInput
+                  style={styles.ratioInputBox}
+                  value={vdRatio}
+                  onChangeText={setVdRatio}
+                  keyboardType="numeric"
+                />
+              </View>
+            </View>
+
+            <Text style={styles.inputLabel}>Thời gian làm bài (phút):</Text>
+            <TextInput
+              style={[styles.textInput, { width: 120 }]}
+              value={totalTime}
+              onChangeText={setTotalTime}
+              keyboardType="numeric"
+            />
+
+            <TouchableOpacity
+              style={styles.saveMatrixBtn}
+              onPress={handleApplyNewMatrix}
+            >
+              <Ionicons name="checkmark-done" size={16} color="#FFFFFF" />
+              <Text style={styles.saveMatrixBtnText}>Áp dụng ma trận mới này</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Khung Ma trận đặc tả trực quan */}
         <MatrixTable summary={summary} rows={rows} />
 
-        {/* SymPy Math Audit Section */}
-        <View style={styles.card}>
-          <View style={styles.cardHeaderRow}>
-            <View style={styles.cardHeaderLeft}>
-              <Ionicons name="shield-checkmark" size={18} color="#059669" />
-              <Text style={styles.cardTitle}>Tầng kiểm toán toán học SymPy ngầm</Text>
-            </View>
-            <View style={styles.zeroHallucinationBadge}>
-              <Text style={styles.zeroHallucinationText}>0% Ảo giác số học AI</Text>
-            </View>
-          </View>
-
-          <Text style={styles.auditIntro}>
-            Khác với ChatGPT thông thường dễ mắc lỗi tính toán số học, EduAudit kích hoạt engine giải toán SymPy chạy ngầm để xác thực độc lập 100% đáp án trước khi phát hành đề.
-          </Text>
-
-          {/* Audit Verification Log Cards */}
-          <View style={styles.logList}>
-            {questions.slice(0, 4).map((q) => (
-              <View key={q.id} style={styles.logItem}>
-                <View style={styles.logItemTop}>
-                  <Text style={styles.logItemCode}>{q.code} - {q.topicName}</Text>
-                  <View style={styles.logTimePill}>
-                    <Text style={styles.logTimeText}>{q.sympyAudit.executionTimeMs}ms</Text>
-                  </View>
-                </View>
-                <Text style={styles.logFormula}>
-                  $ {q.sympyAudit.verificationFormula}
-                </Text>
-                <Text style={styles.logText}>
-                  ✓ Kết quả: {q.sympyAudit.computedResult}
-                </Text>
-              </View>
-            ))}
-          </View>
-        </View>
-
-        {/* Duplicate Guard Card */}
-        <View style={styles.card}>
-          <View style={styles.cardHeaderRow}>
-            <View style={styles.cardHeaderLeft}>
-              <Ionicons name="copy-outline" size={18} color="#2563EB" />
-              <Text style={styles.cardTitle}>Chống trùng lặp đề (Duplicate Guard)</Text>
-            </View>
-            <View style={[styles.zeroHallucinationBadge, { backgroundColor: '#EFF6FF', borderColor: '#BFDBFE' }]}>
-              <Text style={[styles.zeroHallucinationText, { color: '#2563EB' }]}>Trùng 0%</Text>
-            </View>
-          </View>
-          <Text style={styles.auditIntro}>
-            Lưu vết lịch sử khảo thí theo từng lớp và ca thi. Tự động hoán vị tham số để các lớp thi lệch giờ (12A1, 12A2, 12A3) không thể chép bài nhau nhưng vẫn bảo đảm đồng nhất 100% độ khó Ma trận 7991.
-          </Text>
-        </View>
-
-        {/* Action Button to Module 3 */}
+        {/* Action Button: Chuyển sang Soạn câu hỏi */}
         <TouchableOpacity
-          style={styles.nextBtn}
+          style={styles.continueBtn}
           onPress={() => router.push('/editor')}
           activeOpacity={0.8}
         >
-          <Text style={styles.nextBtnText}>
-            Tiếp tục sang Module 3: Tinh chỉnh Thẻ & Xuất bản 1-chạm
+          <Text style={styles.continueBtnText}>
+            Tiếp tục: Soạn & Chốt danh sách câu hỏi
           </Text>
           <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
         </TouchableOpacity>
@@ -117,23 +180,16 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: '#2563EB',
     paddingTop: Platform.OS === 'ios' ? 56 : 36,
-    paddingBottom: 20,
+    paddingBottom: 14,
     paddingHorizontal: 16,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    borderBottomLeftRadius: 18,
+    borderBottomRightRadius: 18,
   },
-  headerBadge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    alignSelf: 'flex-start',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
-    marginBottom: 6,
-  },
-  headerBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: 'bold',
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
   },
   headerTitle: {
     fontSize: 18,
@@ -141,103 +197,143 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   headerSubtitle: {
-    fontSize: 12,
+    fontSize: 11.5,
     color: '#DBEAFE',
-    marginTop: 2,
+    marginTop: 1,
   },
-  body: {
-    padding: 16,
-    gap: 14,
-    paddingBottom: 40,
-  },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  cardHeaderRow: {
+  updateMatrixBtn: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    gap: 4,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
   },
-  cardHeaderLeft: {
+  updateMatrixBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#2563EB',
+  },
+  activeMatrixPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    flex: 1,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+    marginTop: 2,
   },
-  cardTitle: {
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: '#0F172A',
-    flex: 1,
+  activeMatrixPillText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#1E40AF',
   },
-  zeroHallucinationBadge: {
+  body: {
+    padding: 16,
+    paddingBottom: 40,
+    gap: 12,
+  },
+  noticeBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     backgroundColor: '#ECFDF5',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 12,
     borderWidth: 1,
     borderColor: '#A7F3D0',
-  },
-  zeroHallucinationText: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    color: '#059669',
-  },
-  auditIntro: {
-    fontSize: 12,
-    color: '#475569',
-    lineHeight: 18,
-    marginBottom: 12,
-  },
-  logList: {
-    gap: 8,
-  },
-  logItem: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 8,
     padding: 10,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderRadius: 8,
   },
-  logItemTop: {
+  noticeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#065F46',
+    flex: 1,
+  },
+  updateCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1.5,
+    borderColor: '#93C5FD',
+  },
+  updateHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 6,
     marginBottom: 4,
   },
-  logItemCode: {
-    fontSize: 12,
+  updateTitle: {
+    fontSize: 13,
     fontWeight: 'bold',
-    color: '#1E293B',
+    color: '#1E40AF',
   },
-  logTimePill: {
-    backgroundColor: '#EFF6FF',
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    borderRadius: 4,
+  updateDesc: {
+    fontSize: 11.5,
+    color: '#64748B',
+    marginBottom: 10,
   },
-  logTimeText: {
-    fontSize: 10,
+  inputLabel: {
+    fontSize: 11.5,
     fontWeight: '600',
-    color: '#2563EB',
+    color: '#334155',
+    marginBottom: 5,
+    marginTop: 4,
   },
-  logFormula: {
-    fontSize: 11,
-    fontFamily: Platform.select({ ios: 'Courier', default: 'monospace' }),
-    color: '#475569',
-    marginBottom: 2,
+  textInput: {
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    fontSize: 12.5,
+    color: '#0F172A',
+    marginBottom: 8,
+    backgroundColor: '#F8FAFC',
   },
-  logText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#059669',
+  ratioInputsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 8,
   },
-  nextBtn: {
+  ratioInputItem: {
+    flex: 1,
+  },
+  ratioSub: {
+    fontSize: 10.5,
+    color: '#64748B',
+    marginBottom: 4,
+  },
+  ratioInputBox: {
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    fontSize: 13,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    backgroundColor: '#F8FAFC',
+    color: '#0F172A',
+  },
+  saveMatrixBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#2563EB',
+    borderRadius: 8,
+    paddingVertical: 9,
+    marginTop: 6,
+  },
+  saveMatrixBtnText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    fontSize: 12,
+  },
+  continueBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -246,9 +342,9 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingVertical: 12,
   },
-  nextBtnText: {
+  continueBtnText: {
     color: '#FFFFFF',
     fontWeight: 'bold',
-    fontSize: 12.5,
+    fontSize: 13,
   },
 });
